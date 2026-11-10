@@ -133,7 +133,7 @@ if uploaded_file is not None:
                     ):
                         st.write(
                             f"{EMOJI.get(emotion, '•')} "
-                            f"{emotion.title()}: 
+                            
 # Model prediction
 predictions = model.predict(image_array, verbose=0)[0]
 
