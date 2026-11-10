@@ -1,39 +1,152 @@
-from pathlib import Path
-import json
+
 import streamlit as st
-import numpy as np
-from PIL import Image
 import tensorflow as tf
+import numpy as np
+import json
+from PIL import Image
+from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "models" / "facial_expression.keras"
-CLASSES_PATH = BASE_DIR / "models" / "classes.json"
+# Page configuration
+st.set_page_config(
+    page_title="Facial Expression Recognition",
+    page_icon="😊",
+    layout="centered"
+)
 
-st.set_page_config(page_title="Facial Expression Recognition", page_icon="🙂", layout="centered")
-st.title("🙂 Facial Expression Recognition")
-st.write("Upload a face image to view the model's predicted expression.")
+# Title
+st.title("😊 Facial Expression Recognition")
+st.write("Upload a face image to identify its facial expression.")
 
+# Model and class files
+MODEL_PATH = Path("facial_expression_model.keras")
+CLASSES_PATH = Path("classes.json")
+
+IMAGE_SIZE = (64, 64)
+
+DEFAULT_CLASSES = [
+    "angry", "disgusted", "fearful",
+    "happy", "neutral", "sad", "surprised"
+]
+
+EMOJI = {
+    "angry": "😠",
+    "disgusted": "🤢",
+    "fearful": "😨",
+    "happy": "😊",
+    "neutral": "😐",
+    "sad": "😢",
+    "surprised": "😲"
+}
+
+# Load trained model
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model(MODEL_PATH)
+    return tf.keras.models.load_model(
+        MODEL_PATH,
+        compile=False
+    )
 
-with open(CLASSES_PATH, "r", encoding="utf-8") as f:
-    class_names = json.load(f)
+# Upload image
+uploaded_file = st.file_uploader(
+    "Choose a facial image",
+    type=["jpg", "jpeg", "png"]
+)
 
-uploaded = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
-if uploaded:
-    image = Image.open(uploaded).convert("RGB")
-    st.image(image, caption="Uploaded image", use_container_width=True)
-    resized = image.resize((64, 64))
-    array = np.asarray(resized, dtype=np.float32)
-    batch = np.expand_dims(array, axis=0)
-    model = load_model()
-    probabilities = model.predict(batch, verbose=0)[0]
-    index = int(np.argmax(probabilities))
-    st.subheader(f"Prediction: {class_names[index].capitalize()}")
-    st.metric("Model confidence", f"{probabilities[index] * 100:.1f}%")
-    st.write("Class probabilities")
-    for label, score in sorted(zip(class_names, probabilities), key=lambda x: x[1], reverse=True):
-        st.write(f"{label.capitalize()}: {score*100:.1f}%")
-        st.progress(float(score))
-st.caption("Educational demo only. Predictions are not a reliable measure of a person's actual emotional state.")
+if uploaded_file is not None:
+
+    # Read uploaded image
+    image = Image.open(uploaded_file).convert("RGB")
+
+    # Display image
+    st.image(
+        image,
+        caption="Uploaded Face Image",
+        use_container_width=True
+    )
+
+    # Predict button
+    if st.button("Predict Expression", type="primary"):
+
+        if not MODEL_PATH.exists():
+            st.error("Model file not found! Please train the model first.")
+
+        else:
+            try:
+                model = load_model()
+
+                # Load class names
+                if CLASSES_PATH.exists():
+                    classes = json.loads(
+                        CLASSES_PATH.read_text(encoding="utf-8")
+                    )
+                else:
+                    classes = DEFAULT_CLASSES
+
+                # Preprocess image
+                resized_image = image.resize(IMAGE_SIZE)
+
+                image_array = np.array(
+                    resized_image,
+                    dtype=np.float32
+                )
+
+                image_array = np.expand_dims(
+                    image_array,
+                    axis=0
+                )
+
+                # If training used a Rescaling layer,
+                # do not divide by 255 again.
+                # Otherwise, use:
+                # image_array = image_array / 255.0
+
+                # Model prediction
+                predictions = model.predict(
+                    image_array,
+                    verbose=0
+                )[0]
+
+                if len(predictions) != len(classes):
+                    st.error("Model classes do not match class labels.")
+
+                else:
+                    predicted_index = np.argmax(predictions)
+                    predicted_expression = classes[predicted_index]
+
+                    # Display result
+                    st.success("Prediction Completed!")
+
+                    st.subheader("Predicted Expression")
+
+                    st.markdown(
+                        f"# {EMOJI.get(predicted_expression, '🙂')} "
+                        f"{predicted_expression.title()}"
+                    )
+
+                    # Display scores
+                    st.subheader("Expression Scores")
+
+                    for emotion, score in sorted(
+                        zip(classes, predictions),
+                        key=lambda x: x[1],
+                        reverse=True
+                    ):
+                        st.write(
+                            f"{EMOJI.get(emotion, '•')} "
+                            f"{emotion.title()}: {score:.2%}"
+                        )
+
+                        st.progress(
+                            float(np.clip(score, 0, 1))
+                        )
+
+            except Exception as e:
+                st.error(f"Prediction Error: {e}")
+
+else:
+    st.info("Please upload a face image to start prediction.")
+
+st.caption(
+    "Educational demonstration only. Facial expressions "
+    "do not reliably reveal a person's internal emotions."
+)
