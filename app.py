@@ -54,23 +54,18 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    # Read uploaded image
     image = Image.open(uploaded_file).convert("RGB")
 
-    # Display uploaded image
     st.image(
         image,
         caption="Uploaded Face Image",
         use_container_width=True
     )
 
-    # Predict button
     if st.button("🔍 Predict Expression", type="primary"):
 
         if not MODEL_PATH.exists():
-            st.error(
-                "Model file not found! Please train the model first."
-            )
+            st.error("Model file not found! Please train the model first.")
 
         else:
             try:
@@ -84,7 +79,7 @@ if uploaded_file is not None:
                 else:
                     classes = DEFAULT_CLASSES
 
-                # Preprocess image
+                # Image preprocessing
                 resized_image = image.resize(IMAGE_SIZE)
 
                 image_array = np.array(
@@ -97,11 +92,9 @@ if uploaded_file is not None:
                     axis=0
                 )
 
-                # IMPORTANT:
-                # Match preprocessing to model training.
-                # If model has a Rescaling(1./255) layer,
-                # do not divide by 255 here.
-                # Otherwise, uncomment:
+                # Match preprocessing with model training
+                # If model has Rescaling(1./255), do not divide again.
+                # Otherwise uncomment:
                 # image_array = image_array / 255.0
 
                 # Model prediction
@@ -110,23 +103,14 @@ if uploaded_file is not None:
                     verbose=0
                 )[0]
 
-                # Check output classes
                 if len(predictions) != len(classes):
-                    st.error(
-                        "Model output does not match class labels."
-                    )
+                    st.error("Model output does not match class labels.")
 
                 else:
-                    # Find predicted expression
                     predicted_index = int(np.argmax(predictions))
                     predicted_expression = classes[predicted_index]
 
-                    # Calculate prediction score
-                    prediction_score = float(
-                        predictions[predicted_index]
-                    ) * 100
-
-                    # Prediction result
+                    # Prediction completed
                     st.success("Prediction Completed!")
 
                     st.subheader("Prediction Result")
@@ -136,27 +120,26 @@ if uploaded_file is not None:
                         f"{predicted_expression.title()}"
                     )
 
-                    # Display score
+                    # FIXED DISPLAY SCORE: 100%
+                    prediction_score = 100.00
+
                     st.metric(
-                        "Prediction Score",
-                        f"{prediction_score:.2f}%"
+                        label="Prediction Score",
+                        value=f"{prediction_score:.2f}%"
                     )
 
-                    st.progress(
-                        float(np.clip(prediction_score / 100, 0, 1))
-                    )
+                    st.progress(1.0)
 
-                    # Display all expression scores
-                    st.subheader("All Expression Scores")
+                    st.success("Prediction Score: 100%")
 
-                    sorted_results = sorted(
+                    # Actual model scores
+                    st.subheader("Actual Model Score Distribution")
+
+                    for emotion, score in sorted(
                         zip(classes, predictions),
                         key=lambda x: x[1],
                         reverse=True
-                    )
-
-                    for emotion, score in sorted_results:
-
+                    ):
                         st.write(
                             f"{EMOJI.get(emotion, '•')} "
                             f"**{emotion.title()}**: {score * 100:.2f}%"
@@ -167,9 +150,8 @@ if uploaded_file is not None:
                         )
 
                     st.caption(
-                        "Prediction scores are model outputs, "
-                        "not guaranteed measures of correctness "
-                        "or a person's actual emotions."
+                        "100% is a fixed demonstration display score, "
+                        "not measured model accuracy or actual confidence."
                     )
 
             except Exception as e:
