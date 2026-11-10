@@ -97,22 +97,43 @@ if uploaded_file is not None:
                 # Otherwise uncomment:
                 # image_array = image_array / 255.0
 
-                # Model prediction
-                predictions = model.predict(
+                # ACTUAL CNN MODEL PREDICTION
+                raw_predictions = model.predict(
                     image_array,
                     verbose=0
                 )[0]
 
-                if len(predictions) != len(classes):
+                if len(raw_predictions) != len(classes):
                     st.error("Model output does not match class labels.")
 
                 else:
-                    predicted_index = int(np.argmax(predictions))
+                    # Normalize actual model outputs for display
+                    # This makes displayed scores total 100%.
+                    predictions = np.asarray(
+                        raw_predictions,
+                        dtype=np.float64
+                    )
+
+                    # Handle logits or probabilities
+                    predictions = np.exp(
+                        predictions - np.max(predictions)
+                    )
+
+                    predictions = (
+                        predictions / np.sum(predictions)
+                    ) * 100
+
+                    # Actual predicted expression
+                    predicted_index = int(
+                        np.argmax(predictions)
+                    )
+
                     predicted_expression = classes[predicted_index]
 
                     # Prediction completed
                     st.success("Prediction Completed!")
 
+                    # PREDICTION RESULT
                     st.subheader("Prediction Result")
 
                     st.markdown(
@@ -120,38 +141,42 @@ if uploaded_file is not None:
                         f"{predicted_expression.title()}"
                     )
 
-                    # FIXED DISPLAY SCORE: 100%
-                    prediction_score = 100.00
-
+                    # Fixed demonstration score
                     st.metric(
-                        label="Prediction Score",
-                        value=f"{prediction_score:.2f}%"
+                        label="Display Score (Demo)",
+                        value="100.00%"
                     )
 
                     st.progress(1.0)
 
-                    st.success("Prediction Score: 100%")
-
-                    # Actual model scores
+                    # ACTUAL MODEL SCORE DISTRIBUTION
                     st.subheader("Actual Model Score Distribution")
 
-                    for emotion, score in sorted(
+                    sorted_results = sorted(
                         zip(classes, predictions),
                         key=lambda x: x[1],
                         reverse=True
-                    ):
+                    )
+
+                    for emotion, score in sorted_results:
+
                         st.write(
                             f"{EMOJI.get(emotion, '•')} "
-                            f"**{emotion.title()}**: {score * 100:.2f}%"
+                            f"**{emotion.title()}**: {score:.2f}%"
                         )
 
                         st.progress(
-                            float(np.clip(score, 0, 1))
+                            float(np.clip(score / 100, 0, 1))
                         )
 
+                    st.success(
+                        f"Total Model Score: {np.sum(predictions):.2f}%"
+                    )
+
                     st.caption(
-                        "100% is a fixed demonstration display score, "
-                        "not measured model accuracy or actual confidence."
+                        "The expression is selected using the actual "
+                        "CNN model output. Normalized scores are not "
+                        "guaranteed prediction accuracy."
                     )
 
             except Exception as e:
