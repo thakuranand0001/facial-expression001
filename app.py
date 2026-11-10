@@ -10,6 +10,11 @@ MODEL_PATH = Path("facial_expression_model.keras")
 CLASSES_PATH = Path("classes.json")
 IMAGE_SIZE = (64, 64)
 DEFAULT_CLASSES = ["angry", "disgusted", "fearful", "happy", "neutral", "sad", "surprised"]
+st.set_page_config(
+    page_title="Facial Expression Classifier",
+    page_icon="😀",
+    layout="wide"
+)
 
 st.markdown("<style>.main-title{font-size:2.2rem;font-weight:750}.muted{color:#64748b}</style>", unsafe_allow_html=True)
 with st.sidebar:
