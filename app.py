@@ -1,84 +1,311 @@
+
 import json
 from pathlib import Path
+
 import numpy as np
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
-st.set_page_config(page_title="Facial Expression Classifier", page_icon, layout="wide")
-MODEL_PATH = Path("facial_expression_model.keras")
-CLASSES_PATH = Path("classes.json")
-IMAGE_SIZE = (64, 64)
-DEFAULT_CLASSES = ["angry", "disgusted", "fearful", "happy", "neutral", "sad", "surprised"]
 
-st.markdown("<style>.main-title{font-size:2.2rem;font-weight:750}.muted{color:#64748b}</style>", unsafe_allow_html=True)
-with st.sidebar:
-    st.title("Emotion AI")
-    page = st.radio("Navigation", ["Overview", "Predict Expression", "About Model"])
-    st.divider()
-    st.caption("CNN · 64 × 64 RGB input · 7 classes")
+# --------------------------------
+# PAGE CONFIGURATION
+# --------------------------------
 
-@st.cache_resource
-def load_model(path):
-    return tf.keras.models.load_model(path, compile=False)
-
-if page == "Overview":
-    st.markdown('<div class="main-title">Facial Expression Classification</div>', unsafe_allow_html=True)
-    st.markdown('<p class="muted">A convolutional neural network demonstration using the supplied FER image dataset.</p>', unsafe_allow_html=True)
-    cols = st.columns(3)
-    cols[0].metric("Model", "CNN")
-    cols[1].metric("Input size", "64 × 64")
-    cols[2].metric("Expression classes", "7")
-    st.subheader("Project workflow")
-    for heading, detail in [
-        ("1. Prepare dataset", "Extract the dataset ZIP. The training script combines alternate folder spellings into the same emotion label."),
-        ("2. Train model", "Run train_model.py to train, validate, and evaluate the CNN."),
-        ("3. Predict", "Upload a face image to view the predicted expression and class scores."),
-    ]:
-        with st.container(border=True):
-            st.markdown(f"**{heading}**")
-            st.write(detail)
-    st.info("For learning and demonstration only. Facial expressions do not reliably reveal a person's internal emotional state.")
-
-elif page == "Predict Expression":
-    st.title("Upload an image")
-    if not MODEL_PATH.exists():
-        st.warning("Model file not found. Train the model first using the instructions in README.md.")
-    else:
-        try:
-            model = load_model(str(MODEL_PATH))
-            classes = json.loads(CLASSES_PATH.read_text(encoding="utf-8")) if CLASSES_PATH.exists() else DEFAULT_CLASSES
-            uploaded = st.file_uploader("Choose a JPG, JPEG, or PNG image", type=["jpg", "jpeg", "png"])
-            if uploaded:
-                image = Image.open(uploaded).convert("RGB")
-                left, right = st.columns([1, 1.2])
-                with left:
-                    st.image(image, caption="Uploaded image", use_container_width=True)
-                with right:
-                    if st.button("Predict expression", type="primary"):
-                        resized = image.resize(IMAGE_SIZE)
-                        arr = np.asarray(resized, dtype=np.float32)[None, ...]
-                        scores = model.predict(arr, verbose=0)[0]
-                        idx = int(np.argmax(scores))
-                        st.subheader("Prediction")
-                        st.markdown(f"## {EMOJI.get(classes[idx], '🙂')} {classes[idx].title()}")
-                        st.write("Model score distribution")
-                        for name, score in sorted(zip(classes, scores), key=lambda x: x[1], reverse=True):
-                            st.write(f"{EMOJI.get(name, '•')} **{name.title()}** — {score:.100%}")
-                            st.progress(float(score))
-                        st.caption("Scores are model outputs, not calibrated probabilities or evidence of a person's actual feelings.")
-        except Exception as exc:
-            st.error(f"Could not load or run the model: {exc}")
-            st.set_page_config(
+st.set_page_config(
     page_title="Facial Expression Classifier",
     page_icon="😀",
     layout="wide"
 )
 
+# --------------------------------
+# MODEL CONFIGURATION
+# --------------------------------
+
+MODEL_PATH = Path("facial_expression_model.keras")
+CLASSES_PATH = Path("classes.json")
+
+IMAGE_SIZE = (64, 64)
+
+DEFAULT_CLASSES = [
+    "angry",
+    "disgusted",
+    "fearful",
+    "happy",
+    "neutral",
+    "sad",
+    "surprised"
+]
+
+EMOJI = {
+    "angry": "😠",
+    "disgusted": "🤢",
+    "fearful": "😨",
+    "happy": "😊",
+    "neutral": "😐",
+    "sad": "😢",
+    "surprised": "😲"
+}
+
+# --------------------------------
+# CUSTOM CSS
+# --------------------------------
+
+st.markdown("""
+<style>
+.main-title {
+    font-size: 2.2rem;
+    font-weight: 750;
+}
+.muted {
+    color: #64748b;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --------------------------------
+# SIDEBAR
+# --------------------------------
+
+with st.sidebar:
+    st.title("😊 Emotion AI")
+
+    page = st.radio(
+        "Navigation",
+        ["Overview", "Predict Expression", "About Model"]
+    )
+
+    st.divider()
+    st.caption("CNN | 64 × 64 RGB | 7 Classes")
+
+# --------------------------------
+# LOAD MODEL
+# --------------------------------
+
+@st.cache_resource
+def load_model():
+    return tf.keras.models.load_model(
+        MODEL_PATH,
+        compile=False
+    )
+
+# --------------------------------
+# OVERVIEW PAGE
+# --------------------------------
+
+if page == "Overview":
+
+    st.markdown(
+        '<div class="main-title">'
+        'Facial Expression Classification'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<p class="muted">'
+        'Deep Learning Based Facial Expression Recognition System'
+        '</p>',
+        unsafe_allow_html=True
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Model", "CNN")
+    col2.metric("Input Size", "64 × 64")
+    col3.metric("Expression Classes", "7")
+
+    st.subheader("Project Workflow")
+
+    steps = [
+        ("1. Dataset Preparation",
+         "Prepare and organize facial expression images."),
+
+        ("2. Model Training",
+         "Train the CNN model using TensorFlow and Keras."),
+
+        ("3. Expression Prediction",
+         "Upload a face image to predict its expression.")
+    ]
+
+    for heading, detail in steps:
+        with st.container(border=True):
+            st.markdown(f"**{heading}**")
+            st.write(detail)
+
+    st.info(
+        "This application is designed for educational "
+        "and demonstration purposes."
+    )
+
+# --------------------------------
+# PREDICT EXPRESSION PAGE
+# --------------------------------
+
+elif page == "Predict Expression":
+
+    st.title("📸 Upload Facial Image")
+
+    if not MODEL_PATH.exists():
+
+        st.warning(
+            "Model file not found! "
+            "Please train the model first."
+        )
+
+    else:
+
+        try:
+
+            model = load_model()
+
+            if CLASSES_PATH.exists():
+                classes = json.loads(
+                    CLASSES_PATH.read_text(encoding="utf-8")
+                )
+            else:
+                classes = DEFAULT_CLASSES
+
+            uploaded_file = st.file_uploader(
+                "Upload JPG, JPEG or PNG Image",
+                type=["jpg", "jpeg", "png"]
+            )
+
+            if uploaded_file is not None:
+
+                image = Image.open(
+                    uploaded_file
+                ).convert("RGB")
+
+                col1, col2 = st.columns([1, 1.2])
+
+                with col1:
+                    st.image(
+                        image,
+                        caption="Uploaded Image",
+                        use_container_width=True
+                    )
+
+                with col2:
+
+                    if st.button(
+                        "🔍 Predict Expression",
+                        type="primary"
+                    ):
+
+                        resized_image = image.resize(
+                            IMAGE_SIZE
+                        )
+
+                        image_array = np.asarray(
+                            resized_image,
+                            dtype=np.float32
+                        )
+
+                        image_array = np.expand_dims(
+                            image_array,
+                            axis=0
+                        )
+
+                        # IMPORTANT:
+                        # If training used external normalization,
+                        # uncomment the next line.
+                        # image_array = image_array / 255.0
+
+                        predictions = model.predict(
+                            image_array,
+                            verbose=0
+                        )[0]
+
+                        if len(predictions) != len(classes):
+                            st.error(
+                                "Class labels do not match model output."
+                            )
+                        else:
+
+                            predicted_index = int(
+                                np.argmax(predictions)
+                            )
+
+                            predicted_expression = classes[
+                                predicted_index
+                            ]
+
+                            st.subheader("Prediction Result")
+
+                            st.markdown(
+                                f"## {EMOJI.get(predicted_expression, '🙂')} "
+                                f"{predicted_expression.title()}"
+                            )
+
+                            st.write("Expression Score Distribution")
+
+                            sorted_results = sorted(
+                                zip(classes, predictions),
+                                key=lambda x: x[1],
+                                reverse=True
+                            )
+
+                            for emotion, score in sorted_results:
+
+                                st.write(
+                                    f"{EMOJI.get(emotion, '•')} "
+                                    f"**{emotion.title()}** — {score:.2%}"
+                                )
+
+                                st.progress(
+                                    float(np.clip(score, 0, 1))
+                                )
+
+                            st.caption(
+                                "Model scores are not reliable measurements "
+                                "of a person's actual emotional state."
+                            )
+
+        except Exception as error:
+
+            st.error(
+                f"Prediction Error: {error}"
+            )
+
+# --------------------------------
+# ABOUT MODEL PAGE
+# --------------------------------
 
 else:
-    st.title("About the model")
-    st.write("The project follows the supplied introductory image-classification notebook: TensorFlow/Keras, directory-based image data, a CNN, softmax output, model saving, and class-name persistence.")
-    st.markdown("**Classes:** " + ", ".join(c.title() for c in DEFAULT_CLASSES))
-    st.markdown("**Input:** 64 × 64 RGB images")
-    st.markdown("**Output:** Seven class scores; the highest score is displayed as the predicted label.")
-    st.warning("This is an educational image classifier, not a psychological assessment tool. It may be inaccurate across lighting, pose, demographics, image quality, and datasets.")
+
+    st.title("ℹ️ About the Model")
+
+    st.write(
+        "This project uses a Convolutional Neural Network (CNN) "
+        "to classify facial expression images."
+    )
+
+    st.subheader("Technologies Used")
+
+    st.markdown("""
+    - Python
+    - TensorFlow
+    - Keras
+    - CNN (Convolutional Neural Network)
+    - NumPy
+    - Pillow
+    - Streamlit
+    - GitHub
+    """)
+
+    st.subheader("Expression Classes")
+
+    st.write(", ".join(
+        emotion.title() for emotion in DEFAULT_CLASSES
+    ))
+
+    st.subheader("Model Information")
+
+    st.write("Input Image Size: 64 × 64 RGB")
+    st.write("Output Classes: 7")
+    st.write("Model Type: CNN")
+
+    st.warning(
+        "This is an educational image classification system, "
+        "not a psychological or medical assessment tool."
+    )
