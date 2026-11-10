@@ -4,17 +4,11 @@ import numpy as np
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
-
 st.set_page_config(page_title="Facial Expression Classifier", page_icon, layout="wide")
 MODEL_PATH = Path("facial_expression_model.keras")
 CLASSES_PATH = Path("classes.json")
 IMAGE_SIZE = (64, 64)
 DEFAULT_CLASSES = ["angry", "disgusted", "fearful", "happy", "neutral", "sad", "surprised"]
-st.set_page_config(
-    page_title="Facial Expression Classifier",
-    page_icon="😀",
-    layout="wide"
-)
 
 st.markdown("<style>.main-title{font-size:2.2rem;font-weight:750}.muted{color:#64748b}</style>", unsafe_allow_html=True)
 with st.sidebar:
@@ -69,11 +63,17 @@ elif page == "Predict Expression":
                         st.markdown(f"## {EMOJI.get(classes[idx], '🙂')} {classes[idx].title()}")
                         st.write("Model score distribution")
                         for name, score in sorted(zip(classes, scores), key=lambda x: x[1], reverse=True):
-                            st.write(f"{EMOJI.get(name, '•')} **{name.title()}** — {score:.1%}")
+                            st.write(f"{EMOJI.get(name, '•')} **{name.title()}** — {score:.100%}")
                             st.progress(float(score))
                         st.caption("Scores are model outputs, not calibrated probabilities or evidence of a person's actual feelings.")
         except Exception as exc:
             st.error(f"Could not load or run the model: {exc}")
+            st.set_page_config(
+    page_title="Facial Expression Classifier",
+    page_icon="😀",
+    layout="wide"
+)
+
 
 else:
     st.title("About the model")
