@@ -5,17 +5,15 @@ import streamlit as st
 import tensorflow as tf
 from PIL import Image
 
-st.set_page_config(page_title="Facial Expression Classifier", page_icon="😊", layout="wide")
+st.set_page_config(page_title="Facial Expression Classifier", page_icon, layout="wide")
 MODEL_PATH = Path("facial_expression_model.keras")
 CLASSES_PATH = Path("classes.json")
 IMAGE_SIZE = (64, 64)
 DEFAULT_CLASSES = ["angry", "disgusted", "fearful", "happy", "neutral", "sad", "surprised"]
-EMOJI = {"angry": "😠", "disgusted": "🤢", "fearful": "😨", "happy": "😊",
-         "neutral": "😐", "sad": "😢", "surprised": "😮"}
 
 st.markdown("<style>.main-title{font-size:2.2rem;font-weight:750}.muted{color:#64748b}</style>", unsafe_allow_html=True)
 with st.sidebar:
-    st.title("😊 Emotion AI")
+    st.title("Emotion AI")
     page = st.radio("Navigation", ["Overview", "Predict Expression", "About Model"])
     st.divider()
     st.caption("CNN · 64 × 64 RGB input · 7 classes")
