@@ -17,10 +17,6 @@ st.write("Upload a face image to view the model's predicted expression.")
 def load_model():
     return tf.keras.models.load_model(MODEL_PATH)
 
-if not MODEL_PATH.exists() or not CLASSES_PATH.exists():
-    st.warning("The trained model is not available yet. Train it first using: python train_model.py")
-    st.stop()
-
 with open(CLASSES_PATH, "r", encoding="utf-8") as f:
     class_names = json.load(f)
 
